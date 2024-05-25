@@ -1,0 +1,88 @@
+# based on https://github.com/bjw-s/helm-charts/
+
+# NOTE: THIS IS HEAVY WORK IN PROGESS TODO: TEST, FINISH, DOCUMENT
+
+# Hubble
+controllers:
+  hubble: 
+    type: deployment
+    # change amount of replicas and
+    replicas: 1
+    # then you may want to move to strategy: RollingUpdate
+    strategy: Recreate
+    containers:
+      hubble:
+        image:
+          repository: farcasterxyz/hubble
+          tag: 1.12.2
+          pullPolicy: Always
+        # adapting docker-compose.yml from farcasterxyz/hub-monorepo/apps/hubble
+        command: ["npx", "pm2-runtime", "start", "pm2.config.cjs"]
+        #probes:
+        #  liveness:
+        #  readiness:
+
+        # see https://github.com/farcasterxyz/hub-monorepo/blob/main/apps/hubble/docker-compose.yml#L20
+        env:
+          CATCHUP_SYNC_WITH_SNAPSHOT: true
+          NODE_OPTIONS: "--no-warnings --max-old-space-size=8192"
+          HUBBLE_ARGS: >-
+            start
+            --ip 0.0.0.0
+            --gossip-port 2282
+            --rpc-port 2283
+            --eth-mainnet-rpc-url $ETH_MAINNET_RPC_URL
+            --l2-rpc-url $OPTIMISM_L2_RPC_URL
+            --network ${FC_NETWORK_ID:-1}
+            --rpc-subscribe-per-ip-limit ${RPC_SUBSCRIBE_PER_IP_LIMIT:-4}
+            -b ${BOOTSTRAP_NODE:-/dns/nemes.farcaster.xyz/tcp/2282}
+            --statsd-metrics-server $STATSD_METRICS_SERVER
+            --hub-operator-fid ${HUB_OPERATOR_FID:-0}
+            --opt-out-diagnostics ${HUB_OPT_OUT_DIAGNOSTICS:-false}
+
+  statsd:
+    dependsOn: hubble
+    replicas: 1
+    strategy: Recreate
+    image:
+      repository: graphiteapp/graphite-statsd
+      tag: 1.1.10-5
+ 
+service:
+  hubble:
+    controller: hubble
+    ports:
+      http:
+        port: 2281
+      gossip:
+        enabled: true
+        port: 2282
+      rpc:
+        enabled: true
+        port: 2283
+
+# for use with Kubernetes Gateway API
+route:
+  hubble: 
+    enabled: true
+    kind: HTTPRoute
+    parentRefs:
+      - name: gateway
+        namespace: gateway-namespace
+    hostnames:
+      - hub.dtech.vision
+    rules:
+      - matches: 
+        - path:
+            type: Prefix
+            value: /
+        backendRefs:
+          - kind: Service
+            name: hubble    
+
+persistence:
+  config:
+    enabled: true
+    type: hostPath
+    accessMode: ReadWriteOnce
+    retain: false
