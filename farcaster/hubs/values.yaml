@@ -7,8 +7,6 @@ controllers:
     strategy: Recreate
     containers:
       main:
-        nodeSelector:
-          kubernetes.io/hostname: vega
         image:
           repository: farcasterxyz/hubble
           tag: 1.12.2
