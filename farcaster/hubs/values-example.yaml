@@ -3,29 +3,6 @@ controllers:
     type: deployment
     replicas: 1
     strategy: Recreate
-    initContainers:
-      init:
-        image:
-          repository: farcasterxyz/hubble
-          tag: latest
-          pullPolicy: Always
-        command: ["/bin/bash", "-c"]
-        args:
-          - |
-            set -e
-            echo "Checking for existing ID..."
-            echo $(ls -la /home/node/app)
-            echo $(ls -la /home/node/app/apps)
-            echo $(ls -la /home/node/app/apps/hubble)
-            echo $(ls -la /home/node/app/apps/hubble/build)
-            echo $(pwd)
-            if [ -f /home/node/app/apps/hubble/.hub/default_id.protobuf ]; then
-              echo "Existing ID found."
-            else
-              echo "No existing ID found. Creating new ID..."
-              yarn identity create
-            fi
-            echo "Initialization completed successfully."
     containers:
       main:
         image:
@@ -61,7 +38,7 @@ controllers:
               --network ${FC_NETWORK_ID:-1}
               --hub-operator-fid ${HUB_OPERATOR_FID:-0}
               --rpc-subscribe-per-ip-limit ${RPC_SUBSCRIBE_PER_IP_LIMIT:-4}
-              -b ${BOOTSTRAP_NODE:-/dns/nemes.farcaster.xyz/tcp/2282}
+              -b ${BOOTSTRAP_NODE:-/dns/hoyt.farcaster.xyz/tcp/2282}
               --statsd-metrics-server statsd:8125
               --opt-out-diagnostics ${HUB_OPT_OUT_DIAGNOSTICS:-false}
           - name: ETH_MAINNET_RPC_URL
@@ -74,10 +51,15 @@ controllers:
             value: "16085"
           - name: RPC_SUBSCRIBE_PER_IP_LIMIT
             value: "4"
+          # if boostrapping via node peer, pick from here: https://github.com/farcasterxyz/hub-monorepo/blob/main/apps/hubble/src/bootstrapPeers.mainnet.ts
           - name: BOOTSTRAP_NODE
-            value: "/dns/nemes.farcaster.xyz/tcp/2282"
+            value: "/dns/hoyt.farcaster.xyz/tcp/2282/p2p/12D3KooWRnSZUxjVJjbSHhVKpXtvibMarSfLSKDBeMpfVaNm1Joo"
           - name: HUB_OPT_OUT_DIAGNOSTICS
             value: "false"
+            # base64 encoded identity file created via `yarn create identity`
+            # CLI source code that contains this command: https://github.com/farcasterxyz/hub-monorepo/blob/main/apps/hubble/src/cli.ts
+          - name: IDENTITY_B64
+            value: "TODO: base64 encoded identity file GENEATE as per README.md"
         # resources:
         #   requests:
         #     memory: 16Gi
@@ -145,13 +127,9 @@ persistence:
     type: persistentVolumeClaim
     accessMode: ReadWriteOnce
     size: 256Gi  # Adjust this value as needed
-    globalMounts:
-      - path: /home/node/app/apps/hubble/
 
     # If you want to use hostPath, uncomment the following lines and comment out the above
     # enabled: true
     # type: hostPath
     # hostPath: /nvme0n1/farcaster-hub
     # size: 256Gi  # Still required even for hostPath
-    # globalMounts:
-    #  - path: /home/node/app/apps/hubble
