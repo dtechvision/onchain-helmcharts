@@ -28,6 +28,7 @@ controllers:
         # where releasename and namespace match your deployment
         # like for releasename hubble and namespace onchain:
         # hubble-statsd.onchain.svc.cluster.local
+        # and don't forget to set the port! e.g. 8125
 
         # if boostrapping via node peer, pick from here: https://github.com/farcasterxyz/hub-monorepo/blob/main/apps/hubble/src/bootstrapPeers.mainnet.ts
 
@@ -52,7 +53,7 @@ controllers:
               --hub-operator-fid 16085
               --rpc-subscribe-per-ip-limit 4
               -b /dns/hoyt.farcaster.xyz/tcp/2282
-              --statsd-metrics-server statsd:8125
+              --statsd-metrics-server hubble-statsd.onchain.svc.cluster.local:8125
               --opt-out-diagnostics true
           - name: BOOTSTRAP_NODE
             value: "/dns/hoyt.farcaster.xyz/tcp/2282/p2p/12D3KooWRnSZUxjVJjbSHhVKpXtvibMarSfLSKDBeMpfVaNm1Joo"
