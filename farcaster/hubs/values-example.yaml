@@ -11,7 +11,13 @@ controllers:
           tag: latest
           pullPolicy: Always
         # adapting docker-compose.yml from farcasterxyz/hub-monorepo/apps/hubble
-        command: ["npx", "pm2-runtime", "start", "pm2.config.cjs"]
+        # command: ["npx", "pm2-runtime", "start", "pm2.config.cjs"]
+        command: ['/bin/sh', '-c']
+        args:
+          - |
+            set -e
+            node build/cli.js identity create
+            npx pm2-runtime start pm2.config.cjs
         #probes:
         #  liveness:
         #  readiness:
@@ -22,6 +28,13 @@ controllers:
         # where releasename and namespace match your deployment
         # like for releasename hubble and namespace onchain:
         # hubble-statsd.onchain.svc.cluster.local
+
+        # if boostrapping via node peer, pick from here: https://github.com/farcasterxyz/hub-monorepo/blob/main/apps/hubble/src/bootstrapPeers.mainnet.ts
+
+        # base64 encoded identity file created via `yarn create identity`
+        # CLI source code that contains this command: https://github.com/farcasterxyz/hub-monorepo/blob/main/apps/hubble/src/cli.ts
+        # - name: IDENTITY_B64
+        #   value: "TODO: base64 encoded identity file GENEATE as per README.md"
         env:
           - name: CATCHUP_SYNC_WITH_SNAPSHOT
             value: "true"
@@ -33,33 +46,16 @@ controllers:
               --ip 0.0.0.0
               --gossip-port 2282
               --rpc-port 2283
-              --eth-mainnet-rpc-url ${ETH_MAINNET_RPC_URL}
-              --l2-rpc-url ${OPTIMISM_L2_RPC_URL}
-              --network ${FC_NETWORK_ID:-1}
-              --hub-operator-fid ${HUB_OPERATOR_FID:-0}
-              --rpc-subscribe-per-ip-limit ${RPC_SUBSCRIBE_PER_IP_LIMIT:-4}
-              -b ${BOOTSTRAP_NODE:-/dns/hoyt.farcaster.xyz/tcp/2282}
+              --eth-mainnet-rpc-url https://rpc.ankr.com/eth
+              --l2-rpc-url https://rpc.ankr.com/optimism
+              --network 1
+              --hub-operator-fid 16085
+              --rpc-subscribe-per-ip-limit 4
+              -b /dns/hoyt.farcaster.xyz/tcp/2282
               --statsd-metrics-server statsd:8125
-              --opt-out-diagnostics ${HUB_OPT_OUT_DIAGNOSTICS:-false}
-          - name: ETH_MAINNET_RPC_URL
-            value: "https://rpc.ankr.com/eth"
-          - name: OPTIMISM_L2_RPC_URL
-            value: "https://rpc.ankr.com/optimism"
-          - name: FC_NETWORK_ID
-            value: "1"
-          - name: HUB_OPERATOR_FID
-            value: "16085"
-          - name: RPC_SUBSCRIBE_PER_IP_LIMIT
-            value: "4"
-          # if boostrapping via node peer, pick from here: https://github.com/farcasterxyz/hub-monorepo/blob/main/apps/hubble/src/bootstrapPeers.mainnet.ts
+              --opt-out-diagnostics true
           - name: BOOTSTRAP_NODE
             value: "/dns/hoyt.farcaster.xyz/tcp/2282/p2p/12D3KooWRnSZUxjVJjbSHhVKpXtvibMarSfLSKDBeMpfVaNm1Joo"
-          - name: HUB_OPT_OUT_DIAGNOSTICS
-            value: "false"
-            # base64 encoded identity file created via `yarn create identity`
-            # CLI source code that contains this command: https://github.com/farcasterxyz/hub-monorepo/blob/main/apps/hubble/src/cli.ts
-          - name: IDENTITY_B64
-            value: "TODO: base64 encoded identity file GENEATE as per README.md"
         # resources:
         #   requests:
         #     memory: 16Gi
@@ -133,3 +129,5 @@ persistence:
     # type: hostPath
     # hostPath: /nvme0n1/farcaster-hub
     # size: 256Gi  # Still required even for hostPath
+    # globalMounts:
+    #  - path: /home/node/app/apps/hubble
