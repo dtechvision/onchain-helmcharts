@@ -1,0 +1,157 @@
+controllers:
+  main:
+    type: deployment
+    replicas: 1
+    strategy: Recreate
+    initContainers:
+      init:
+        image:
+          repository: farcasterxyz/hubble
+          tag: latest
+          pullPolicy: Always
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            set -e
+            echo "Checking for existing ID..."
+            echo $(ls -la /home/node/app)
+            echo $(ls -la /home/node/app/apps)
+            echo $(ls -la /home/node/app/apps/hubble)
+            echo $(ls -la /home/node/app/apps/hubble/build)
+            echo $(pwd)
+            if [ -f /home/node/app/apps/hubble/.hub/default_id.protobuf ]; then
+              echo "Existing ID found."
+            else
+              echo "No existing ID found. Creating new ID..."
+              yarn identity create
+            fi
+            echo "Initialization completed successfully."
+    containers:
+      main:
+        image:
+          repository: farcasterxyz/hubble
+          # you may want to use a specific version here
+          tag: latest
+          pullPolicy: Always
+        # adapting docker-compose.yml from farcasterxyz/hub-monorepo/apps/hubble
+        command: ["npx", "pm2-runtime", "start", "pm2.config.cjs"]
+        #probes:
+        #  liveness:
+        #  readiness:
+
+        # see https://github.com/farcasterxyz/hub-monorepo/blob/main/apps/hubble/docker-compose.yml#L20
+        # make sure the statsd-metrics-server value is of the form:
+        # releasename-statsd.namespace.svc.cluster.local
+        # where releasename and namespace match your deployment
+        # like for releasename hubble and namespace onchain:
+        # hubble-statsd.onchain.svc.cluster.local
+        env:
+          - name: CATCHUP_SYNC_WITH_SNAPSHOT
+            value: "true"
+          - name: NODE_OPTIONS
+            value: "--no-warnings --max-old-space-size=8192"
+          - name: HUBBLE_ARGS
+            value: >-
+              start
+              --ip 0.0.0.0
+              --gossip-port 2282
+              --rpc-port 2283
+              --eth-mainnet-rpc-url ${ETH_MAINNET_RPC_URL}
+              --l2-rpc-url ${OPTIMISM_L2_RPC_URL}
+              --network ${FC_NETWORK_ID:-1}
+              --hub-operator-fid ${HUB_OPERATOR_FID:-0}
+              --rpc-subscribe-per-ip-limit ${RPC_SUBSCRIBE_PER_IP_LIMIT:-4}
+              -b ${BOOTSTRAP_NODE:-/dns/nemes.farcaster.xyz/tcp/2282}
+              --statsd-metrics-server statsd:8125
+              --opt-out-diagnostics ${HUB_OPT_OUT_DIAGNOSTICS:-false}
+          - name: ETH_MAINNET_RPC_URL
+            value: "https://rpc.ankr.com/eth"
+          - name: OPTIMISM_L2_RPC_URL
+            value: "https://rpc.ankr.com/optimism"
+          - name: FC_NETWORK_ID
+            value: "1"
+          - name: HUB_OPERATOR_FID
+            value: "16085"
+          - name: RPC_SUBSCRIBE_PER_IP_LIMIT
+            value: "4"
+          - name: BOOTSTRAP_NODE
+            value: "/dns/nemes.farcaster.xyz/tcp/2282"
+          - name: HUB_OPT_OUT_DIAGNOSTICS
+            value: "false"
+        # resources:
+        #   requests:
+        #     memory: 16Gi
+
+
+  statsd:
+    type: deployment
+    replicas: 1
+    strategy: Recreate
+    containers:
+      main:
+        image:
+          repository: graphiteapp/graphite-statsd
+          tag: 1.1.10-5
+
+service:
+  main:
+    controller: main
+    ports:
+      http:
+        port: 2281
+      gossip:
+        enabled: true
+        port: 2282
+      rpc:
+        enabled: true
+        port: 2283
+  statsd:
+    controller: statsd
+    ports:
+      graphite:
+        port: 2003
+      graphite-udp:
+        port: 2003
+        protocol: UDP
+      statsd:
+        port: 8125
+        protocol: UDP
+      statsd-admin:
+        port: 8126
+
+# for use with Kubernetes Gateway API
+# route:
+#   hubble:
+#     enabled: true
+#     kind: HTTPRoute
+#     parentRefs:
+#       - name: gateway
+#         namespace: gateway-namespace
+#     hostnames:
+#       - hub.dtech.vision
+#     rules:
+#       - matches:
+#         - path:
+#             type: Prefix
+#             value: /
+#         backendRefs:
+#           - kind: Service
+#             name: hubble
+
+persistence:
+  # make sure this fits your storage setup
+  config:
+    enabled: true
+    type: persistentVolumeClaim
+    accessMode: ReadWriteOnce
+    size: 256Gi  # Adjust this value as needed
+    globalMounts:
+      - path: /home/node/app/apps/hubble/
+
+    # If you want to use hostPath, uncomment the following lines and comment out the above
+    # enabled: true
+    # type: hostPath
+    # hostPath: /nvme0n1/farcaster-hub
+    # size: 256Gi  # Still required even for hostPath
+    # globalMounts:
+    #  - path: /home/node/app/apps/hubble
