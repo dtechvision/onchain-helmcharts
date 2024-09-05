@@ -9,7 +9,8 @@ controllers:
       main:
         image:
           repository: farcasterxyz/hubble
-          tag: 1.12.2
+          # you may want to use a specific version here
+          tag: latest
           pullPolicy: Always
         # adapting docker-compose.yml from farcasterxyz/hub-monorepo/apps/hubble
         command: ["npx", "pm2-runtime", "start", "pm2.config.cjs"]
@@ -36,7 +37,7 @@ controllers:
             --opt-out-diagnostics ${HUB_OPT_OUT_DIAGNOSTICS:-false}
 
   statsd:
-    dependsOn: hubble
+    type: deployment
     replicas: 1
     strategy: Recreate
     containers:
@@ -47,6 +48,7 @@ controllers:
 
 service:
   main:
+    controller: main
     ports:
       http:
         port: 2281
@@ -77,9 +79,14 @@ service:
 #             name: hubble
 
 persistence:
+  # make sure this fits your storage setup
   config:
     enabled: true
-    type: hostPath
+    type: persistentVolumeClaim
     accessMode: ReadWriteOnce
-    retain: false
-    hostPath: /nvme0n1/farcaster-hub
+    size: 256Gi  # Adjust this value as needed
+
+    # If you want to use hostPath, uncomment the following lines and comment out the above
+    # type: hostPath
+    # hostPath: /nvme0n1/farcaster-hub
+    # size: 256Gi  # Still required even for hostPath
