@@ -87,6 +87,8 @@ service:
   statsd:
     controller: statsd
     ports:
+      graphite-web:
+        port: 80
       graphite:
         port: 2003
       graphite-udp:
