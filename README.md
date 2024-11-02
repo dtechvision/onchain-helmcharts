@@ -2,11 +2,11 @@
 
 A collection of helm charts to run onchain infrastructure pleasantly in Kubernetes.
 
-- [Farcaster Helm Charts](/charts/farcaster)
-  - [Farcaster Hub aka "Farcaster Node"](/charts/farcaster/hubble)
-  - [Shuttle App](/charts/farcaster/shuttle)
-- [Quilibrium Helm Charts - planned](/charts/quilibrium)
-- [RETH Helm Chart - planned](/charts/reth)
+- [Farcaster](https://dtech.vision/farcaster)
+  - [Farcaster Hub aka "Farcaster Node"](/charts/farcaster-hubble)
+  - [Shuttle App - planned]
+- [Quilibrium Helm Charts - planned]
+- [RETH Helm Chart - planned]
 
 ## Usage
 
