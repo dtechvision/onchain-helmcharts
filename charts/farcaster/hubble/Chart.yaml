@@ -1,0 +1,8 @@
+apiVersion: v2
+name: hubble
+description: A Helm chart for running a Farcaster Hub
+version: 0.1.0
+dependencies:
+  - name: app-template
+    version: "1.5.1"
+    repository: https://bjw-s.github.io/helm-charts/
