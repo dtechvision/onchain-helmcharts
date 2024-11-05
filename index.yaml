@@ -1,0 +1,16 @@
+apiVersion: v1
+entries:
+  hubble:
+  - apiVersion: v2
+    created: "2024-11-05T16:18:26.875793985Z"
+    dependencies:
+    - name: app-template
+      repository: https://bjw-s.github.io/helm-charts/
+      version: 1.5.1
+    description: A Helm chart for running a Farcaster Hub
+    digest: fbfe31c7bfa43efb9c56670636f0e09395caee05178d51498330076ff28ef2c9
+    name: hubble
+    urls:
+    - https://github.com/dtechvision/onchain-helmcharts/releases/download/hubble-0.1.0/hubble-0.1.0.tgz
+    version: 0.1.0
+generated: "2024-11-05T16:18:26.875803793Z"
